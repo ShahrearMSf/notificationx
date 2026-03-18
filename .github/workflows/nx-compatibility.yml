@@ -218,8 +218,8 @@ jobs:
       - name: Collect test results
         id: collect-results
         run: |
-          # Count total jobs (19 combinations based on matrix)
-          TOTAL_JOBS=19
+          # Count total jobs (34 combinations based on matrix)
+          TOTAL_JOBS=34
 
           # Get job results from needs context
           RESULT='${{ needs.wordpress-test.result }}'
@@ -258,8 +258,8 @@ jobs:
         run: |
           # Build test matrix summary
           MATRIX_SUMMARY="*Test Matrix:*\n"
-          MATRIX_SUMMARY+="• WordPress: 6.5, 6.6, 6.7, latest\n"
-          MATRIX_SUMMARY+="• PHP: 7.4, 8.0, 8.1, 8.2, 8.3\n"
+          MATRIX_SUMMARY+="• WordPress: 6.7, 6.9.1, 6.9.2, 6.9.4, latest\n"
+          MATRIX_SUMMARY+="• PHP: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5\n"
           MATRIX_SUMMARY+="• Total Combinations: ${{ steps.collect-results.outputs.total }}"
 
           # Build workflow URL
