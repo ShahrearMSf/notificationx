@@ -15,6 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4 # Updated to v4 for better performance
 
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build assets
+        run: npm run release
+
       - name: Generating zip
         uses: rudlinkon/action-wordpress-build-zip@master
         with:
