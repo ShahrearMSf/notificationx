@@ -94,15 +94,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - wp-version: "6.9.4"
+          - wp-version: "latest"
             php-version: "7.4"
-          - wp-version: "6.9.4"
+          - wp-version: "latest"
             php-version: "8.0"
-          - wp-version: "6.9.4"
+          - wp-version: "latest"
             php-version: "8.2"
-          - wp-version: "6.9.4"
+          - wp-version: "latest"
             php-version: "8.4"
-          - wp-version: "6.9.4"
+          - wp-version: "latest"
             php-version: "8.5"
           - wp-version: "6.5.5"
             php-version: "8.1"
@@ -140,7 +140,7 @@ jobs:
       - name: Install and Activate NotificationX
         run: |
           mkdir -p ./test-site/wp-content/plugins/notificationx
-          cp -r ./notificationx-dist/notificationx/. ./test-site/wp-content/plugins/notificationx/
+          cp -r ./notificationx-dist/. ./test-site/wp-content/plugins/notificationx/
           cd test-site
           wp plugin activate notificationx --allow-root
 

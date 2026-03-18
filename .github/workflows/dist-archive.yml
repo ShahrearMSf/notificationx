@@ -6,7 +6,7 @@ on:
     outputs:
       artifact-name:
         description: 'The name of the uploaded artifact'
-        value: 'notificationx'
+        value: ${{ github.event.repository.name }}
 
 jobs:
   generate-archive:
@@ -20,3 +20,9 @@ jobs:
         with:
           # npm-run-build: true
           install-composer: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}
+          path: notificationx

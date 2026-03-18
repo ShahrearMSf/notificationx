@@ -56,7 +56,7 @@ jobs:
       - name: Install and Activate NotificationX
         run: |
           mkdir -p ./test-site/wp-content/plugins/notificationx
-          cp -r ./notificationx-dist/notificationx/. ./test-site/wp-content/plugins/notificationx/
+          cp -r ./notificationx-dist/. ./test-site/wp-content/plugins/notificationx/
 
           echo "Plugin directory contents:"
           ls ./test-site/wp-content/plugins/notificationx | head -n 15
