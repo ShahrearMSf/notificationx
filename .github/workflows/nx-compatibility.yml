@@ -276,7 +276,7 @@ jobs:
                     "type": "header",
                     "text": {
                       "type": "plain_text",
-                      "text": ":notificationx: NotificationX Compatibility CI Results",
+                      "text": ":notificationx: Compatibility Test for NotificationX",
                       "emoji": true
                     }
                   },
