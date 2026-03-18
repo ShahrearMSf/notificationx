@@ -1,4 +1,4 @@
-name: NotificationX Plugin Compatibility Test
+name: Compatibility Test for NotificationX
 
 on:
   workflow_dispatch:
@@ -24,8 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
-        wordpress: ['6.5', '6.6', '6.7', 'latest']
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        wordpress: ['6.7', '6.9.1', '6.9.2', '6.9.4','latest']
         exclude:
           # Exclude incompatible combinations
           - wordpress: 'latest'
