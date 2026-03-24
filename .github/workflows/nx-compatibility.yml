@@ -10,7 +10,7 @@ on:
       plugin_branch:
         description: 'Plugin Branch to Test'
         required: false
-        default: 'latest'
+        default: 'master'
   # push:
   #   branches: [main, master]
   # pull_request:
@@ -19,16 +19,16 @@ on:
 jobs:
   wordpress-test:
     name: WP ${{ matrix.wordpress }} / PHP ${{ matrix.php }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-master
 
     strategy:
       fail-fast: false
       matrix:
         php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
-        wordpress: ['6.7', '6.9.1', '6.9.2', '6.9.4','latest']
+        wordpress: ['6.7', '6.9.1', '6.9.2', '6.9.4','master']
         exclude:
           # Exclude incompatible combinations
-          - wordpress: 'latest'
+          - wordpress: 'master'
             php: '7.4'
 
     services:
@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
-          ref: ${{ github.event.inputs.plugin_branch || 'latest' }}
+          ref: ${{ github.event.inputs.plugin_branch || 'master' }}
           path: notificationx
 
       - name: Setup PHP ${{ matrix.php }}
@@ -212,7 +212,7 @@ jobs:
   #   name: Send Slack Notification
   #   needs: wordpress-test
   #   if: always()
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-master
 
   #   steps:
   #     - name: Collect test results
@@ -258,7 +258,7 @@ jobs:
   #       run: |
   #         # Build test matrix summary
   #         MATRIX_SUMMARY="*Test Matrix:*\n"
-  #         MATRIX_SUMMARY+="• WordPress: 6.7, 6.9.1, 6.9.2, 6.9.4, latest\n"
+  #         MATRIX_SUMMARY+="• WordPress: 6.7, 6.9.1, 6.9.2, 6.9.4, master\n"
   #         MATRIX_SUMMARY+="• PHP: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5\n"
   #         MATRIX_SUMMARY+="• Total Combinations: ${{ steps.collect-results.outputs.total }}"
 

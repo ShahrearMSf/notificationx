@@ -10,12 +10,12 @@ on:
       plugin_branch:
         description: 'Plugin Branch to Test'
         required: false
-        default: 'latest'
+        default: 'master'
 
 jobs:
   pcp-test:
-    name: WP Latest / PHP 8.4
-    runs-on: ubuntu-latest
+    name: WP master / PHP 8.4
+    runs-on: ubuntu-master
 
     services:
       mysql:
@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
-          ref: ${{ github.event.inputs.plugin_branch || 'latest' }}
+          ref: ${{ github.event.inputs.plugin_branch || 'master' }}
           path: notificationx
 
       - name: Setup PHP
