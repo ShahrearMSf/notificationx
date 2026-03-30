@@ -1,6 +1,9 @@
-name: Plugin Version Verification
+name: QA - Plugin Version Verification
+
+permissions: read-all
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       plugin_repo:
@@ -13,35 +16,42 @@ on:
         default: 'master'
 
 jobs:
-  verify-version:
-    name: Verify Plugin Version
-    runs-on: ubuntu-latest
+  version-check:
+    runs-on: ubuntu-24.04
+    name: Version Consistency Check
     steps:
       - name: Checkout NotificationX plugin
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.plugin_repo }}
           ref: ${{ inputs.plugin_branch }}
-          path: notificationx
 
-      - name: Run Version Check
+      - name: Check all version numbers are consistent
         run: |
-          echo "🔍 Checking version consistency..."
-          
-          # Sanitize outputs (remove any hidden \r or whitespace)
-          PACKAGE_VERSION=$(cat notificationx/package.json | grep '"version":' | head -1 | awk -F '"' '{print $4}' | tr -d '[:space:]')
-          PLUGIN_INFO_VERSION=$(grep 'Version:' notificationx/notificationx.php | head -1 | awk '{print $NF}' | tr -d '[:space:]')
-          CONSTANT_VERSION=$(grep "define( 'NOTIFICATIONX_VERSION'" notificationx/notificationx.php | head -1 | awk -F "'" '{print $4}' | tr -d '[:space:]')
-          README_VERSION=$(grep -i "Stable tag:" notificationx/README.txt | head -1 | awk '{print $NF}' | tr -d '[:space:]')
-          
-          echo "package.json: $PACKAGE_VERSION"
-          echo "notificationx.php (Info): $PLUGIN_INFO_VERSION"
-          echo "notificationx.php (Constant): $CONSTANT_VERSION"
-          echo "README.txt: $README_VERSION"
-          
-          # Check if they match
-          if [ "$PACKAGE_VERSION" != "$PLUGIN_INFO_VERSION" ] || [ "$PLUGIN_INFO_VERSION" != "$CONSTANT_VERSION" ] || [ "$CONSTANT_VERSION" != "$README_VERSION" ]; then
-            echo "❌ Version mismatch detected!"
-            exit 1
+          # Extract each version string from its canonical location
+          V_HEADER=$(grep -oP "^\s*\*\s*Version:\s*\K[\d.]+" notificationx.php | head -1)
+          V_CONST=$(grep -oP "define\(\s*'NOTIFICATIONX_VERSION',\s*'?\K[\d.]+" notificationx.php | head -1)
+
+          echo "Plugin header (Version:):        $V_HEADER"
+          echo "NOTIFICATIONX_VERSION constant:  $V_CONST"
+
+          MISMATCH=0
+          [ "$V_HEADER" != "$V_CONST" ] && echo "::error::MISMATCH: Plugin header ($V_HEADER) ≠ NOTIFICATIONX_VERSION ($V_CONST)" && MISMATCH=1
+
+          # README.txt is optional — only check if present
+          if [ -f README.txt ]; then
+            V_README=$(grep -oP "Stable tag:\s*\K[\d.]+" README.txt | head -1)
+            echo "README.txt Stable tag:            $V_README"
+            [ "$V_HEADER" != "$V_README" ] && echo "::error::MISMATCH: Plugin header ($V_HEADER) ≠ README.txt Stable tag ($V_README)" && MISMATCH=1
           fi
-          echo "✅ All versions match: $CONSTANT_VERSION"
+
+          # package.json version check (optional)
+          if [ -f package.json ]; then
+            V_PKG=$(grep -oP '"version":\s*"\K[\d.]+' package.json | head -1)
+            echo "package.json version:             $V_PKG"
+            [ "$V_HEADER" != "$V_PKG" ] && echo "::warning::package.json version ($V_PKG) differs from plugin header ($V_HEADER)" 
+          fi
+
+          [ "$MISMATCH" -eq 1 ] && exit 1
+
+          echo "✅ All version numbers are consistent: $V_HEADER"

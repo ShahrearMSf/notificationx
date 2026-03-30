@@ -3,14 +3,10 @@ name: NotificationX Compatibility Test
 on:
   workflow_call:
     inputs:
-      plugin_repo:
-        required: false
+      artifact-name:
+        required: true
         type: string
-        default: 'WPDevelopers/notificationx'
-      plugin_branch:
-        required: false
-        type: string
-        default: 'master'
+        description: 'The name of the build artifact'
 
 jobs:
   wordpress-test:
@@ -37,12 +33,10 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Checkout NotificationX plugin
-        uses: actions/checkout@v4
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
         with:
-          repository: ${{ inputs.plugin_repo }}
-          ref: ${{ inputs.plugin_branch }}
-          path: notificationx
+          name: ${{ inputs.artifact-name }}
 
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -96,10 +90,9 @@ jobs:
           wp config set WP_DEBUG_LOG true --raw --path=/tmp/test-site
           wp config set WP_DEBUG_DISPLAY false --raw --path=/tmp/test-site
 
-      - name: Copy plugin to WordPress
+      - name: Install Plugin from Zip
         run: |
-          mkdir -p /tmp/test-site/wp-content/plugins/notificationx
-          cp -r notificationx/* /tmp/test-site/wp-content/plugins/notificationx/
+          unzip notificationx.zip -d /tmp/test-site/wp-content/plugins/
 
       - name: Activate NotificationX plugin
         run: |

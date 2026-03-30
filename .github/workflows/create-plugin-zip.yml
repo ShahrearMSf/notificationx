@@ -1,0 +1,44 @@
+name: Create Plugin Zip
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'The branch, tag or SHA to checkout'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      artifact-name:
+        description: 'The name of the uploaded artifact'
+        value: ${{ jobs.generate-archive.outputs.artifact-name }}
+
+jobs:
+  generate-archive:
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact-name: notificationx
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build assets
+        run: npm run release
+
+      - name: Generating zip
+        uses: rudlinkon/action-wordpress-build-zip@master
+        with:
+          install-composer: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notificationx
+          path: notificationx.zip
+          retention-days: 1
