@@ -43,6 +43,11 @@ jobs:
           coverage: none
           tools: composer, wp-cli
 
+      - name: Install Composer Dependencies
+        run: |
+          cd notificationx
+          composer install --no-dev --optimize-autoloader
+
       - name: Wait for MySQL to be ready
         run: |
           echo "⏳ Waiting for MySQL to be ready..."

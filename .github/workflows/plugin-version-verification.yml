@@ -32,12 +32,12 @@ jobs:
           PACKAGE_VERSION=$(cat notificationx/package.json | grep '"version":' | head -1 | awk -F '"' '{print $4}')
           PLUGIN_INFO_VERSION=$(grep 'Version:' notificationx/notificationx.php | head -1 | awk '{print $NF}')
           CONSTANT_VERSION=$(grep "define( 'NOTIFICATIONX_VERSION'" notificationx/notificationx.php | head -1 | awk -F "'" '{print $4}')
-          README_VERSION=$(grep -i "Stable tag:" notificationx/readme.txt | head -1 | awk '{print $NF}')
+          README_VERSION=$(grep -i "Stable tag:" notificationx/README.txt | head -1 | awk '{print $NF}')
           
           echo "package.json: $PACKAGE_VERSION"
           echo "notificationx.php (Info): $PLUGIN_INFO_VERSION"
           echo "notificationx.php (Constant): $CONSTANT_VERSION"
-          echo "readme.txt: $README_VERSION"
+          echo "README.txt: $README_VERSION"
           
           # Check if they match
           if [ "$PACKAGE_VERSION" != "$PLUGIN_INFO_VERSION" ] || [ "$PLUGIN_INFO_VERSION" != "$CONSTANT_VERSION" ] || [ "$CONSTANT_VERSION" != "$README_VERSION" ]; then
