@@ -1,4 +1,4 @@
-name: QA - Orchestrator
+name: QA
 
 on:
   push:
@@ -23,11 +23,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    uses: ./.github/workflows/create-plugin-zip.yml
-    with:
-      ref: ${{ github.event.inputs.plugin_branch || github.ref }}
-
   plugin-version-check:
     uses: ./.github/workflows/plugin-version-verification.yml
     with:
@@ -41,14 +36,15 @@ jobs:
       plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}
 
   pcp-plugin-check:
-    needs: build
     uses: ./.github/workflows/pcp-plugin-check.yml
     with:
-      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      plugin_repo: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
+      plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}
 
   compatibility-test:
-    needs: [build, plugin-version-check, php-syntax-check]
     uses: ./.github/workflows/notificationx-compatibility-test.yml
     with:
-      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      plugin_repo: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
+      plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}
+
 
