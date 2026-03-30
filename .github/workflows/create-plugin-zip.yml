@@ -11,16 +11,19 @@ on:
     outputs:
       artifact-name:
         description: 'The name of the uploaded artifact'
-        value: 'notificationx' # Explicitly set for consistency
+        value: ${{ jobs.generate-archive.outputs.artifact-name }}
 
 jobs:
   generate-archive:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-name: notificationx
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
+          path: notificationx
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -35,14 +38,11 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        working-directory: notificationx
 
       - name: Build assets
         run: npm run release
-
-      - name: Generating zip
-        uses: rudlinkon/action-wordpress-build-zip@master
-        with:
-          install-composer: false
+        working-directory: notificationx
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
