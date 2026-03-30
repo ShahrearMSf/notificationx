@@ -13,40 +13,32 @@ on:
         default: 'master'
 
 jobs:
-  # 1. Build the plugin archive
-  build:
-    name: Build Plugin
-    uses: ./.github/workflows/create-plugin-zip.yml
-    with:
-      ref: ${{ github.event.inputs.plugin_branch || github.ref }}
-    # create-plugin-zip.yml outputs artifact-name
-
-  # 2. Run Syntax and Version checks (Parallel)
+  # 1. Run Syntax and Version checks (Parallel)
   verify-syntax:
     name: Verify Syntax
-    needs: build
     uses: ./.github/workflows/php-syntax-check.yml
     with:
-      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      plugin_repo: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
+      plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}
 
   verify-version:
     name: Verify Version
-    needs: build
     uses: ./.github/workflows/plugin-version-verification.yml
     with:
-      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      plugin_repo: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
+      plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}
 
-  # 3. Run Compatibility and PCP tests (Parallel)
+  # 2. Run Compatibility and PCP tests (Parallel)
   compatibility-test:
     name: Compatibility Test
-    needs: build
     uses: ./.github/workflows/notificationx-compatibility-test.yml
     with:
-      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      plugin_repo: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
+      plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}
 
   pcp-check:
     name: PCP Check
-    needs: build
     uses: ./.github/workflows/pcp-plugin-check.yml
     with:
-      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      plugin_repo: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
+      plugin_branch: ${{ github.event.inputs.plugin_branch || 'master' }}

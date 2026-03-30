@@ -3,20 +3,25 @@ name: Plugin Version Verification
 on:
   workflow_call:
     inputs:
-      artifact-name:
-        required: true
+      plugin_repo:
+        required: false
         type: string
-        description: 'The name of the build artifact'
+        default: 'WPDevelopers/notificationx'
+      plugin_branch:
+        required: false
+        type: string
+        default: 'master'
 
 jobs:
   verify-version:
     name: Verify Plugin Version
     runs-on: ubuntu-latest
     steps:
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
+      - name: Checkout NotificationX plugin
+        uses: actions/checkout@v4
         with:
-          name: ${{ inputs.artifact-name }}
+          repository: ${{ inputs.plugin_repo }}
+          ref: ${{ inputs.plugin_branch }}
           path: notificationx
 
       - name: Run Version Check
