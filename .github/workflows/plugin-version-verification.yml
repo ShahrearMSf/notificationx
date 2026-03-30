@@ -28,11 +28,11 @@ jobs:
         run: |
           echo "🔍 Checking version consistency..."
           
-          # Get versions from different files
-          PACKAGE_VERSION=$(cat notificationx/package.json | grep '"version":' | head -1 | awk -F '"' '{print $4}')
-          PLUGIN_INFO_VERSION=$(grep 'Version:' notificationx/notificationx.php | head -1 | awk '{print $NF}')
-          CONSTANT_VERSION=$(grep "define( 'NOTIFICATIONX_VERSION'" notificationx/notificationx.php | head -1 | awk -F "'" '{print $4}')
-          README_VERSION=$(grep -i "Stable tag:" notificationx/README.txt | head -1 | awk '{print $NF}')
+          # Sanitize outputs (remove any hidden \r or whitespace)
+          PACKAGE_VERSION=$(cat notificationx/package.json | grep '"version":' | head -1 | awk -F '"' '{print $4}' | tr -d '[:space:]')
+          PLUGIN_INFO_VERSION=$(grep 'Version:' notificationx/notificationx.php | head -1 | awk '{print $NF}' | tr -d '[:space:]')
+          CONSTANT_VERSION=$(grep "define( 'NOTIFICATIONX_VERSION'" notificationx/notificationx.php | head -1 | awk -F "'" '{print $4}' | tr -d '[:space:]')
+          README_VERSION=$(grep -i "Stable tag:" notificationx/README.txt | head -1 | awk '{print $NF}' | tr -d '[:space:]')
           
           echo "package.json: $PACKAGE_VERSION"
           echo "notificationx.php (Info): $PLUGIN_INFO_VERSION"

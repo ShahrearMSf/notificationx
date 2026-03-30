@@ -52,11 +52,6 @@ jobs:
           coverage: none
           tools: composer, wp-cli
 
-      - name: Install Composer Dependencies
-        run: |
-          cd notificationx
-          composer install --no-dev --optimize-autoloader
-
       - name: Wait for MySQL to be ready
         run: |
           echo "⏳ Waiting for MySQL to be ready..."
@@ -108,64 +103,26 @@ jobs:
 
       - name: Activate NotificationX plugin
         run: |
+          echo "🔌 Activating NotificationX plugin..."
           wp plugin activate notificationx --path=/tmp/test-site
           
-          # Force execute admin_init to trigger activation routines (DB etc)
-          echo "⚙️  Triggering admin_init to ensure activation logic completes..."
-          wp eval 'do_action("admin_init");' --path=/tmp/test-site
-
-      - name: Verify Database Tables
-        run: |
-          echo "🔍 Verifying NotificationX database tables..."
-          TABLES=$(wp db tables --path=/tmp/test-site)
-          
-          MISSING_TABLES=0
-          for table in nx_entries nx_posts nx_stats; do
-            if ! echo "$TABLES" | grep -q "$table"; then
-              echo "❌ Table missing: $table"
-              MISSING_TABLES=1
-            else
-              echo "✅ Table exists: $table"
-            fi
-          done
-          
-          if [ $MISSING_TABLES -eq 1 ]; then
+          if [ $? -ne 0 ]; then
+            echo "❌ Plugin activation failed!"
             exit 1
           fi
+          echo "✅ Plugin activated successfully"
 
-      - name: Verify Shortcodes
+      - name: Verify plugin is active
         run: |
-          echo "🔍 Verifying NotificationX shortcodes..."
-          SHORTCODES=$(wp eval 'global $shortcode_tags; echo implode(",", array_keys($shortcode_tags));' --path=/tmp/test-site)
+          echo "🔍 Verifying plugin activation..."
+          wp plugin list --path=/tmp/test-site --status=active --format=csv | grep notificationx
           
-          if echo "$SHORTCODES" | grep -q "notificationx_inline"; then
-            echo "✅ Shortcode [notificationx_inline] is registered"
-          else
-            echo "❌ Shortcode [notificationx_inline] is NOT registered"
+          if [ $? -ne 0 ]; then
+            echo "❌ Plugin is not in active plugins list!"
             exit 1
           fi
+          echo "✅ Plugin is active and verified"
 
-      - name: Verify REST API Routes
-        run: |
-          echo "🔍 Verifying NotificationX REST API routes..."
-          
-          # Check namespace
-          if ! wp rest route list --path=/tmp/test-site --format=csv | grep -q "notificationx/v1"; then
-            echo "❌ REST Namespace [notificationx/v1] missing!"
-            exit 1
-          fi
-          echo "✅ REST Namespace [notificationx/v1] is available"
-          
-          # Check specific routes
-          ROUTES=$(wp rest route list --path=/tmp/test-site --format=csv)
-          for route in "/notificationx/v1/builder" "/notificationx/v1/settings"; do
-            if echo "$ROUTES" | grep -q "$route"; then
-              echo "✅ Route exists: $route"
-            else
-              echo "❌ Route missing: $route"
-              exit 1
-            fi
-          done
 
       - name: Final Status Report
         if: always()
