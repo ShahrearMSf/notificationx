@@ -7,6 +7,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
     inputs:
+      plugin_repo:
+        description: 'NotificationX Plugin Repository URL'
+        required: false
+        default: 'WPDevelopers/notificationx'
       plugin_branch:
         description: 'Plugin Branch to Test'
         required: false
