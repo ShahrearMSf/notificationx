@@ -1,0 +1,42 @@
+name: Plugin Version Verification
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+        description: 'The name of the build artifact'
+
+jobs:
+  verify-version:
+    name: Verify Plugin Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: notificationx
+
+      - name: Run Version Check
+        run: |
+          echo "🔍 Checking version consistency..."
+          
+          # Get versions from different files
+          PACKAGE_VERSION=$(cat notificationx/package.json | grep '"version":' | head -1 | awk -F '"' '{print $4}')
+          PLUGIN_INFO_VERSION=$(grep 'Version:' notificationx/notificationx.php | head -1 | awk '{print $NF}')
+          CONSTANT_VERSION=$(grep "define( 'NOTIFICATIONX_VERSION'" notificationx/notificationx.php | head -1 | awk -F "'" '{print $4}')
+          README_VERSION=$(grep -i "Stable tag:" notificationx/readme.txt | head -1 | awk '{print $NF}')
+          
+          echo "package.json: $PACKAGE_VERSION"
+          echo "notificationx.php (Info): $PLUGIN_INFO_VERSION"
+          echo "notificationx.php (Constant): $CONSTANT_VERSION"
+          echo "readme.txt: $README_VERSION"
+          
+          # Check if they match
+          if [ "$PACKAGE_VERSION" != "$PLUGIN_INFO_VERSION" ] || [ "$PLUGIN_INFO_VERSION" != "$CONSTANT_VERSION" ] || [ "$CONSTANT_VERSION" != "$README_VERSION" ]; then
+            echo "❌ Version mismatch detected!"
+            exit 1
+          fi
+          echo "✅ All versions match: $CONSTANT_VERSION"

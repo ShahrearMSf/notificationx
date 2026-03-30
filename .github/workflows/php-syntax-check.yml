@@ -1,0 +1,31 @@
+name: PHP Syntax Check
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+        description: 'The name of the build artifact'
+
+jobs:
+  syntax-check:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: notificationx
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4' # Syntax check can run on 7.4 to ensure compatibility
+          tools: composer, wp-cli
+
+      - name: Run Syntax Check
+        run: |
+          echo "🔍 Checking PHP syntax for all plugin files..."
+          find notificationx -name "*.php" -exec php -l {} \; | grep "Errors parsing" && exit 1 || echo "✅ No syntax errors found"

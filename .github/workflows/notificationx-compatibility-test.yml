@@ -1,0 +1,178 @@
+name: NotificationX Compatibility Test
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+        description: 'The name of the build artifact'
+
+jobs:
+  wordpress-test:
+    name: WP ${{ matrix.wordpress }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        wordpress: ['6.5', '6.6', '6.7', 'master']
+        exclude:
+          - wordpress: 'master'
+            php: '7.4'
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: notificationx
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, mbstring, xml, curl, zip, intl, gd
+          coverage: none
+          tools: composer, wp-cli
+
+      - name: Wait for MySQL to be ready
+        run: |
+          echo "⏳ Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            if mysqladmin ping -h"127.0.0.1" -P"3306" -u"root" -p"root" --silent; then
+              echo "✅ MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: Download WordPress ${{ matrix.wordpress }}
+        run: |
+          WP_VER=${{ matrix.wordpress }}
+          if [ "$WP_VER" == "master" ]; then WP_VER="nightly"; fi
+          wp core download --version=$WP_VER --path=/tmp/test-site
+
+      - name: Create WordPress configuration
+        run: |
+          wp config create \
+            --path=/tmp/test-site \
+            --dbname=wordpress_test \
+            --dbuser=root \
+            --dbpass=root \
+            --dbhost=127.0.0.1:3306 \
+            --skip-check
+
+      - name: Install WordPress
+        run: |
+          wp core install \
+            --path=/tmp/test-site \
+            --url=http://localhost \
+            --title="NotificationX CI Test" \
+            --admin_user=admin \
+            --admin_password=admin \
+            --admin_email=test@example.com \
+            --skip-email
+
+          # Enable debug mode
+          wp config set WP_DEBUG true --raw --path=/tmp/test-site
+          wp config set WP_DEBUG_LOG true --raw --path=/tmp/test-site
+          wp config set WP_DEBUG_DISPLAY false --raw --path=/tmp/test-site
+
+      - name: Copy plugin to WordPress
+        run: |
+          mkdir -p /tmp/test-site/wp-content/plugins/notificationx
+          cp -r notificationx/* /tmp/test-site/wp-content/plugins/notificationx/
+
+      - name: Activate NotificationX plugin
+        run: |
+          wp plugin activate notificationx --path=/tmp/test-site
+          
+          # Force execute admin_init to trigger activation routines (DB etc)
+          echo "⚙️  Triggering admin_init to ensure activation logic completes..."
+          wp eval 'do_action("admin_init");' --path=/tmp/test-site
+
+      - name: Verify Database Tables
+        run: |
+          echo "🔍 Verifying NotificationX database tables..."
+          TABLES=$(wp db tables --path=/tmp/test-site)
+          
+          MISSING_TABLES=0
+          for table in nx_entries nx_posts nx_stats; do
+            if ! echo "$TABLES" | grep -q "$table"; then
+              echo "❌ Table missing: $table"
+              MISSING_TABLES=1
+            else
+              echo "✅ Table exists: $table"
+            fi
+          done
+          
+          if [ $MISSING_TABLES -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Verify Shortcodes
+        run: |
+          echo "🔍 Verifying NotificationX shortcodes..."
+          SHORTCODES=$(wp eval 'global $shortcode_tags; echo implode(",", array_keys($shortcode_tags));' --path=/tmp/test-site)
+          
+          if echo "$SHORTCODES" | grep -q "notificationx_inline"; then
+            echo "✅ Shortcode [notificationx_inline] is registered"
+          else
+            echo "❌ Shortcode [notificationx_inline] is NOT registered"
+            exit 1
+          fi
+
+      - name: Verify REST API Routes
+        run: |
+          echo "🔍 Verifying NotificationX REST API routes..."
+          
+          # Check namespace
+          if ! wp rest route list --path=/tmp/test-site --format=csv | grep -q "notificationx/v1"; then
+            echo "❌ REST Namespace [notificationx/v1] missing!"
+            exit 1
+          fi
+          echo "✅ REST Namespace [notificationx/v1] is available"
+          
+          # Check specific routes
+          ROUTES=$(wp rest route list --path=/tmp/test-site --format=csv)
+          for route in "/notificationx/v1/builder" "/notificationx/v1/settings"; do
+            if echo "$ROUTES" | grep -q "$route"; then
+              echo "✅ Route exists: $route"
+            else
+              echo "❌ Route missing: $route"
+              exit 1
+            fi
+          done
+
+      - name: Final Status Report
+        if: always()
+        run: |
+          echo "📊 Final Status Report"
+          echo "======================"
+          echo "WordPress: $(wp core version --path=/tmp/test-site)"
+          echo "PHP: $(php -v | head -n 1)"
+          echo "Plugin Status:"
+          wp plugin list --path=/tmp/test-site --format=table --name=notificationx
+          echo "======================"
+
+      - name: Upload debug log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-log-wp${{ matrix.wordpress }}-php${{ matrix.php }}
+          path: /tmp/test-site/wp-content/debug.log
+          if-no-files-found: ignore
+          retention-days: 7

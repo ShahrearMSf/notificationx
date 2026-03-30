@@ -1,0 +1,54 @@
+name: Create Plugin Zip
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'The branch, tag or SHA to checkout'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      artifact-name:
+        description: 'The name of the uploaded artifact'
+        value: 'notificationx' # Explicitly set for consistency
+
+jobs:
+  generate-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build assets
+        run: npm run release
+
+      - name: Prepare build directory
+        run: |
+          mkdir -p build/notificationx
+          # Use rsync if available, or cp with ignores
+          # Following BetterLinks pattern: copy all then remove ignores or use rsync
+          rsync -rc --exclude-from=.distignore . build/notificationx/
+          
+          # Ensure vendor directory is included if composer is used (NotificationX has vendor)
+          if [ -d "vendor" ]; then
+            rsync -rc vendor build/notificationx/
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notificationx
+          path: build/notificationx
+          retention-days: 1

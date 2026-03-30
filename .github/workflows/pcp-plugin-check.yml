@@ -1,21 +1,17 @@
-name: NotificationX Plugin Check (PCP)
+name: Plugin Check (PCP)
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      plugin_repo:
-        description: 'NotificationX Plugin Repository URL'
-        required: false
-        default: 'WPDevelopers/notificationx'
-      plugin_branch:
-        description: 'Plugin Branch to Test'
-        required: false
-        default: 'master'
+      artifact-name:
+        required: true
+        type: string
+        description: 'The name of the build artifact'
 
 jobs:
   pcp-test:
-    name: WP master / PHP 8.4
-    runs-on: ubuntu-master
+    name: PCP Check (PHP 8.4)
+    runs-on: ubuntu-latest
 
     services:
       mysql:
@@ -28,11 +24,10 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      - name: Checkout NotificationX plugin
-        uses: actions/checkout@v6
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
         with:
-          repository: ${{ github.event.inputs.plugin_repo || 'WPDevelopers/notificationx' }}
-          ref: ${{ github.event.inputs.plugin_branch || 'master' }}
+          name: ${{ inputs.artifact-name }}
           path: notificationx
 
       - name: Setup PHP
@@ -57,12 +52,12 @@ jobs:
 
       - name: Download WordPress
         run: |
-          wp core download --path=/tmp/wordpress
+          wp core download --path=/tmp/test-site
 
       - name: Create WordPress configuration
         run: |
           wp config create \
-            --path=/tmp/wordpress \
+            --path=/tmp/test-site \
             --dbname=wordpress_test \
             --dbuser=root \
             --dbpass=root \
@@ -72,7 +67,7 @@ jobs:
       - name: Install WordPress
         run: |
           wp core install \
-            --path=/tmp/wordpress \
+            --path=/tmp/test-site \
             --url=http://localhost \
             --title="NotificationX PCP Test" \
             --admin_user=admin \
@@ -80,26 +75,26 @@ jobs:
             --admin_email=test@example.com \
             --skip-email
 
-          wp config set WP_DEBUG true --raw --path=/tmp/wordpress
-          wp config set WP_DEBUG_LOG true --raw --path=/tmp/wordpress
+          wp config set WP_DEBUG true --raw --path=/tmp/test-site
+          wp config set WP_DEBUG_LOG true --raw --path=/tmp/test-site
 
       - name: Copy plugin to WordPress
         run: |
-          mkdir -p /tmp/wordpress/wp-content/plugins/notificationx
-          cp -r notificationx/* /tmp/wordpress/wp-content/plugins/notificationx/
+          mkdir -p /tmp/test-site/wp-content/plugins/notificationx
+          cp -r notificationx/* /tmp/test-site/wp-content/plugins/notificationx/
 
       - name: Activate NotificationX plugin
         run: |
-          wp plugin activate notificationx --path=/tmp/wordpress
+          wp plugin activate notificationx --path=/tmp/test-site
 
       - name: Install Plugin Check Plugin
         run: |
-          wp plugin install plugin-check --activate --path=/tmp/wordpress
+          wp plugin install plugin-check --activate --path=/tmp/test-site
 
       - name: Run Plugin Check
         run: |
           # Redirect full output to a file
-          wp plugin check notificationx --path=/tmp/wordpress --ignore-warnings 2>&1 | tee /tmp/pcp-output.txt || true
+          wp plugin check notificationx --path=/tmp/test-site --ignore-warnings 2>&1 | tee /tmp/pcp-output.txt || true
 
           if grep -qF "Success: Checks complete. No errors found." /tmp/pcp-output.txt; then
             echo "✅ Plugin Check passed — no errors found."
@@ -111,9 +106,9 @@ jobs:
 
       - name: Upload debug log on failure
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: debug-log-pcp
-          path: /tmp/wordpress/wp-content/debug.log
+          path: /tmp/test-site/wp-content/debug.log
           if-no-files-found: ignore
           retention-days: 7
