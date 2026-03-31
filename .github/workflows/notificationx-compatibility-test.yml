@@ -16,10 +16,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
-        wordpress: ['6.5', '6.6', '6.7', 'master']
-        exclude:
-          - wordpress: 'master'
+        include:
+          - wordpress: '6.9.4'
+            php: '7.4'
+          - wordpress: '6.9.4'
+            php: '8.1'
+          - wordpress: '6.9.4'
+            php: '8.4'
+          - wordpress: '6.9.4'
+            php: '8.5'
+          - wordpress: '6.7'
+            php: '8.1'
+          - wordpress: '6.5'
             php: '7.4'
 
     services:
