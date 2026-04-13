@@ -1,10 +1,6 @@
 name: QA
 
 on:
-  push:
-    branches: [main, master, 'release/*']
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
       plugin_repo:
