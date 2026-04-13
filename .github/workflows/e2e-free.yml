@@ -43,9 +43,9 @@ env:
   ADMIN_EMAIL: admin@test.local
 
 jobs:
-  # Build plugin from source (only for standalone workflow_dispatch runs)
+  # Build plugin from source (only when no pre-built artifact is provided)
   build-plugin:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ inputs.artifact-name == '' }}
     uses: ./.github/workflows/create-plugin-zip.yml
     with:
       ref: ${{ inputs.nx_branch }}
@@ -164,8 +164,8 @@ jobs:
           $WP option update woocommerce_store_postcode "90210"
           $WP option update woocommerce_calc_taxes "no"
           $WP option update woocommerce_onboarding_profile '{"completed":true}' --format=json
-          $WP option update woocommerce_task_list_hidden "yes"
-          $WP option update woocommerce_coming_soon "no"
+          $WP option update woocommerce_task_list_hidden "yes" 2>/dev/null || true
+          $WP option update woocommerce_coming_soon "no" 2>/dev/null || true
 
           # Enable Cash on Delivery
           $WP option update woocommerce_cod_settings '{"enabled":"yes","title":"Cash on Delivery","description":"Pay with cash upon delivery.","instructions":"Pay with cash upon delivery.","enable_for_methods":[],"enable_for_virtual":"yes"}' --format=json
