@@ -171,32 +171,39 @@ jobs:
           $WP option update woocommerce_cod_settings '{"enabled":"yes","title":"Cash on Delivery","description":"Pay with cash upon delivery.","instructions":"Pay with cash upon delivery.","enable_for_methods":[],"enable_for_virtual":"yes"}' --format=json
 
           # Product 1: T-Shirt (in stock)
-          $WP wc product create --user=1 \
+          PRODUCT1=$($WP wc product create --user=1 \
             --name="Classic T-Shirt" --type=simple --regular_price="29.99" \
             --short_description="Classic cotton t-shirt" \
-            --manage_stock=true --stock_quantity=50 --stock_status=instock --status=publish
+            --manage_stock=true --stock_quantity=50 --status=publish \
+            --porcelain)
+          echo "Created T-Shirt (ID: $PRODUCT1)"
 
           # Product 2: Coffee Mug (low stock)
-          $WP wc product create --user=1 \
+          PRODUCT2=$($WP wc product create --user=1 \
             --name="Coffee Mug" --type=simple --regular_price="14.99" \
             --short_description="Premium ceramic mug" \
-            --manage_stock=true --stock_quantity=3 --low_stock_amount=5 --stock_status=instock --status=publish
+            --manage_stock=true --stock_quantity=3 --status=publish \
+            --porcelain)
+          # Set low stock threshold separately (param may vary by WC version)
+          $WP post meta update "$PRODUCT2" _low_stock_amount 5 2>/dev/null || true
+          echo "Created Coffee Mug (ID: $PRODUCT2)"
 
           # Product 3: Wireless Headphones (on sale)
-          $WP wc product create --user=1 \
+          PRODUCT3=$($WP wc product create --user=1 \
             --name="Wireless Headphones" --type=simple --regular_price="79.99" --sale_price="59.99" \
             --short_description="Wireless noise-cancelling headphones" \
-            --manage_stock=true --stock_quantity=25 --stock_status=instock --status=publish
+            --manage_stock=true --stock_quantity=25 --status=publish \
+            --porcelain)
+          echo "Created Wireless Headphones (ID: $PRODUCT3)"
 
           echo "--- Products ---"
           $WP wc product list --user=1 --fields=id,name,price,stock_quantity
 
           # Create a sample completed order (for Sales Notification data)
-          PRODUCT_ID=$($WP wc product list --user=1 --field=id --format=csv | head -2 | tail -1)
           $WP wc shop_order create --user=1 \
             --status=completed --payment_method=cod \
             --billing='{"first_name":"John","last_name":"Doe","address_1":"123 Test St","city":"Test City","state":"CA","postcode":"90210","country":"US","email":"john@test.local"}' \
-            --line_items="[{\"product_id\":${PRODUCT_ID},\"quantity\":2}]" 2>/dev/null || echo "Order created (or fallback needed)"
+            --line_items="[{\"product_id\":${PRODUCT1},\"quantity\":2}]" 2>/dev/null || echo "Order created (or fallback needed)"
 
           # Dismiss admin nags
           $WP option update fresh_site 0
@@ -218,6 +225,19 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+
+      - name: Verify WordPress is accessible
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${WP_PORT}/wp-login.php")
+          echo "WP login page returned: $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "WordPress is not accessible!"
+            exit 1
+          fi
+
+      - name: Prepare test directories
+        working-directory: e2e-suite
+        run: mkdir -p snapshots playwright/.auth
 
       - name: Run Playwright E2E tests
         id: test-run
